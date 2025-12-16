@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmServe.py LongVA-7B-DPO

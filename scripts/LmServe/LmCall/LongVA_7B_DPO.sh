@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmCall.py LongVA_7B_DPO text "Describe this video in detail." video  $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/examples/red-panda.mp4

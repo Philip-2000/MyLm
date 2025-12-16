@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmServe.py LLaVA-NeXT-Video-7B-hf

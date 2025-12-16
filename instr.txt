@@ -1,0 +1,7 @@
+tca ivd   && source /mnt/data/yl/C/MyLm/scripts/LmServe/LmServe/InternVideo2_5_Chat_8B.sh           tn / ta InternVideo2_5
+tca try   && source /mnt/data/yl/C/MyLm/scripts/LmServe/LmServe/InternVL3_5_8B.sh                   tn / ta InternVL3_5
+tca try   && source /mnt/data/yl/C/MyLm/scripts/LmServe/LmServe/Qwen3-VL-8B-Instruct.sh             tn / ta Qwen3
+tca try   && source /mnt/data/yl/C/MyLm/scripts/LmServe/LmServe/Qwen2_5_VL_7B_Instruct.sh           tn / ta Qwen2
+tca try   && source /mnt/data/yl/C/MyLm/scripts/LmServe/LmServe/LLaVA_NeXT_Video_7B_hf.sh           tn / ta llava-next-video
+tca llava && source /mnt/data/yl/C/MyLm/scripts/LmServe/LmServe/llava_onevision_qwen2_7b_ov.sh      tn / ta llava-ov
+tca llava && source /mnt/data/yl/C/MyLm/scripts/LmServe/LmServe/LLaVA_Video_7B_Qwen2.sh             tn / ta llava-video

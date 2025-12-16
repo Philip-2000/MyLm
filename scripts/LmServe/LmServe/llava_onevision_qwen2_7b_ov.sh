@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmServe.py llava-onevision-qwen2-7b-ov

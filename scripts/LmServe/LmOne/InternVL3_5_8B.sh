@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmOne.py InternVL3_5-8B text "Describe this video in detail." video  $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/examples/red-panda.mp4

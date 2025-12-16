@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmServe.py Qwen2.5-VL-7B-Instruct

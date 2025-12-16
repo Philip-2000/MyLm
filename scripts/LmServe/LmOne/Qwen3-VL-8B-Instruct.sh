@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmOne.py Qwen3-VL-8B-Instruct image  $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/examples/image1.jpg text "Descibe this image in detail."

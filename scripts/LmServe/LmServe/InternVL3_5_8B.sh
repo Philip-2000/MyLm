@@ -1,0 +1,1 @@
+python $(dirname "${BASH_SOURCE[0]}")/LmServe.py InternVL3_5-8B
