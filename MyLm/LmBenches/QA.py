@@ -1,14 +1,18 @@
 class QA:
-    def __init__(self, question="", answer="", video_key="", uid="None", bench_object=None):
+    def __init__(self, question="", answer="", video_key="", uid="None", bench_object=None, **kwargs):
         self.uid = uid
         self.question = question
         self.answer = answer
         self.video_key = video_key
         self.bench_object = bench_object
         self.result = ""
+        self.query_time = kwargs.get("query_time", None)
+        self.ref_time = {"start": kwargs.get("ref_start", None), "end": kwargs.get("ref_end", None)}
         self._compare = None
-        self._video_path = self.get_video_path()
     
+    def __repr__(self):
+        return f"QA (uid={self.uid}, video_key={self.video_key}, question={self.question}, answer={self.answer}, query_time={self.query_time}, ref_time={self.ref_time})"
+
     def run(self, model, **kwargs):
         prompt = f"IMPORTANT: You MUST answer based ONLY on the content of the video.\n Video ID: {self.video_key}\nQuestion: {self.question}\n【Strict Instructions】1. Answer ONLY with the single option letter (e.g., A/B/C/D/E/F) that matches the correct answer.2. Do NOT add any extra explanation, video details, reasoning, or irrelevant text.Answer:"
         # prompt = f"Video ID: {self.video_key}\nQuestion: {self.question}\nAnswer:"
@@ -19,17 +23,10 @@ class QA:
     @property
     def record(self):
         return {"result": self.result, "correct": self._compare}
-    
-    # hrw
-    def get_video_path(self):
-        try:
-            return self.bench_object.Videos[self.video_key].path
-        except (AttributeError, KeyError):
-            raise ValueError(f"Video with key '{self.video_key}' not found in benchmark object.")
         
     @property
     def video_path(self):
-        return self._video_path
+        return self.bench_object.Videos[self.video_key].path
 
     def compare(self, generated_answer=""):
         if self._compare is None:
@@ -123,7 +120,9 @@ class QA:
             answer=solution,
             video_key=qa_dict["video_key"],
             uid = qa_dict["uid"],
-            bench_object=bench_object
+            bench_object=bench_object,
+            ref_start = qa_dict.get("time_reference", "").split("-")[0] if qa_dict.get("time_reference") else None,
+            ref_end = qa_dict.get("time_reference", "").split("-")[1] if qa_dict.get("time_reference") else None,
         )
     
     @classmethod
@@ -256,7 +255,7 @@ class QA:
         )
 
     @classmethod
-    def asegoschema(cls, qa_dict, bench_object):
+    def asEgoSchema(cls, qa_dict, bench_object):
         """
         {
             "q_uid": "00faf954-74f7-4aa3-8b29-4a5dff4f9518",
@@ -292,4 +291,130 @@ class QA:
             video_key=qa_dict["q_uid"],
             uid = qa_dict["q_uid"],
             bench_object=bench_object
+        )
+    
+    @classmethod
+    def asEgoLifeQA(cls, qa_dict, bench_object):
+        """
+        {
+            "ID": "1",
+            "query_time": {
+                "date": "DAY1",
+                "time": "11210217"
+            },
+            "type": "EntityLog",
+            "type_chinese": "实体日志",
+            "need_audio": false,
+            "need_name": true,
+            "last_time": false,
+            "trigger": "The table was filled with various tools and parts",
+            "trigger_chinese": "桌上摆满了各种工具和零件",
+            "question": "Who used the screwdriver first?",
+            "question_chinese": "谁最先使用过螺丝刀？",
+            "choice_a": "Tasha",
+            "choice_a_chinese": "Tasha",
+            "choice_b": "Alice",
+            "choice_b_chinese": "Alice",
+            "choice_c": "Shure",
+            "choice_c_chinese": "Shure",
+            "choice_d": "Lucia",
+            "choice_d_chinese": "Lucia",
+            "answer": "B",
+            "target_time": {
+                "date": "DAY1",
+                "time": "11152408"
+            },
+            "keywords": "use screwdriver",
+            "reason": "Saw Alice tightening screws with a screwdriver",
+            "reason_chinese": "看见Alice用螺丝刀紧螺丝",
+            "identity": "A1_JAKE"
+        },
+        """
+        letters = ["A", "B", "C", "D", "E", "F"]
+        # collect choices (support up to 6)
+        choice_keys = ["choice_a", "choice_b", "choice_c", "choice_d", "choice_e", "choice_f"]
+        choices = [qa_dict.get(k) for k in choice_keys if qa_dict.get(k) is not None]
+        lettered = [f"{letters[i]}. {opt}" for i, opt in enumerate(choices)]
+        question = qa_dict.get("question", "") + (" Options: " + " ".join(lettered) if lettered else "")
+        sol = qa_dict.get("answer")
+        # normalize solution to a single letter
+        if isinstance(sol, int):
+            sol_letter = letters[sol] if 0 <= sol < len(letters) else "A"
+        else:
+            sol_str = str(sol).strip()
+            if sol_str and sol_str[0].upper() in letters:
+                sol_letter = sol_str[0].upper()
+            else:
+                try:
+                    idx = choices.index(sol)
+                    sol_letter = letters[idx]
+                except Exception:
+                    sol_letter = "A"
+        solution = sol_letter
+        video_key = qa_dict.get("identity") or qa_dict.get("ID") or qa_dict.get("video_key") or "unknown"
+        uid = qa_dict.get("ID")
+        #print("query_time:", qa_dict.get("query_time"))
+        #print("target_time:", qa_dict.get("target_time"))
+        if "time_list" in qa_dict["target_time"]:
+            qa_dict["target_time"]["start_time"] = str(min([int(t) for t in qa_dict["target_time"]["time_list"]]))
+            qa_dict["target_time"]["start_date"] = qa_dict["target_time"]["date"]
+            qa_dict["target_time"]["end_time"] = str(max([int(t) for t in qa_dict["target_time"]["time_list"]]))
+            qa_dict["target_time"]["end_date"] = qa_dict["target_time"]["date"]
+        elif qa_dict["target_time"]["time"].find("DAY") != -1:
+            time_list = qa_dict["target_time"]["time"].split("DAY")
+            qa_dict["target_time"]["time_list"] = [ qa_dict["target_time"]["date"]+"_"+time_list[0] ] + [ "DAY"+t for t in time_list[1:] if t ]
+            qa_dict["target_time"]["start_time"] = qa_dict["target_time"]["time_list"][0][5:]
+            qa_dict["target_time"]["start_date"] = qa_dict["target_time"]["time_list"][0][:4]
+            qa_dict["target_time"]["end_time"] = qa_dict["target_time"]["time_list"][-1][5:]
+            qa_dict["target_time"]["end_date"] = qa_dict["target_time"]["time_list"][-1][:4]
+        elif qa_dict["target_time"]["time"].find("-") != -1:
+            qa_dict["target_time"]["start_time"] = qa_dict["target_time"]["time"].split("-")[0]
+            qa_dict["target_time"]["start_date"] = qa_dict["target_time"]["date"]
+            qa_dict["target_time"]["end_time"] = qa_dict["target_time"]["time"].split("-")[1]
+            qa_dict["target_time"]["end_date"] = qa_dict["target_time"]["date"]
+        else:
+            qa_dict["target_time"]["start_time"] = qa_dict["target_time"]["time"]
+            qa_dict["target_time"]["start_date"] = qa_dict["target_time"]["date"]
+            HH, MM, SS, FF = int(qa_dict["target_time"]["time"][0:2]), int(qa_dict["target_time"]["time"][2:4]), int(qa_dict["target_time"]["time"][4:6]), int(qa_dict["target_time"]["time"][6:8])
+            FF += 1
+            if FF >= 20:
+                FF, SS = 0, SS + 1
+                if SS >= 60:
+                    SS, MM = 0, MM + 1
+                    if MM >= 60: MM, HH = 0, HH + 1
+            qa_dict["target_time"]["end_time"] = f"{HH:02d}{MM:02d}{SS:02d}{FF:02d}"
+            qa_dict["target_time"]["end_date"] = qa_dict["target_time"]["date"]
+
+        return cls(
+            question=question,
+            answer=solution,
+            video_key=video_key,
+            uid=uid,
+            bench_object=bench_object,
+            query_time = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}",
+            ref_start = f"{qa_dict['target_time']['start_date']}_{qa_dict['identity']}_{qa_dict['target_time']['start_time']}",
+            ref_end = f"{qa_dict['target_time']['end_date']}_{qa_dict['identity']}_{qa_dict['target_time']['end_time']}",
+        )
+    
+    @classmethod
+    def asXLeBench(cls, qa_dict, bench_object, video_key):
+        """
+        {
+            "response_start_time_sec": 43050.0210286,
+            "response_end_time_sec": 43064.4490286,
+            "query": "Where is the knife?",
+            "template": "Objects: Where is object X?",
+            "video_uid": "1246d6ec-5620-4f71-8b4b-d823775f58c2"
+            "global_uid": "xlebench_00001",
+        },
+        """
+        return cls(
+            question=qa_dict["query"],
+            answer=qa_dict.get("answer", "A"),
+            video_key=qa_dict["video_uid"],
+            uid = qa_dict.get("global_uid", "unknown"),
+            bench_object=bench_object,
+            query_time = bench_object.Videos[video_key].duration,
+            ref_start = qa_dict.get("response_start_time_sec", None),
+            ref_end = qa_dict.get("response_end_time_sec", None),
         )

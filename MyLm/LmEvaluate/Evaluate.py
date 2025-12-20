@@ -29,7 +29,7 @@ class Tes:
                     
 class Test:
     def __getitem__(self, key):
-        return Tes()  # if key =="MLVU" else No()
+        return Tes()  if key =="EgoLifeQA" else No()
     
     
     #b=egoschema        # 500qa,500v
@@ -39,12 +39,28 @@ class Test:
 #b=MLVU              #2592qa,1659v
 #b=Video_MME        #2700qa,900v
 
-def evaluate(mask=Test()):#All()):#
+class MaskM:
+    def __init__(self, m):
+        self.m = m
+    def __getitem__(self, key):
+        return True if self.m=="All" else (False if self.m=="None" else (key == self.m))
+
+class MaskBM:
+    def __init__(self, b, m):
+        self.b = b
+        self.MASKM = MaskM(m)
+    
+    def __getitem__(self, keyb):
+        return self.MASKM if self.b=="All" else (No() if self.b=="None" or keyb != self.b else (self.MASKM))
+
+
+def evaluate(_b="None", _m="None", max_qa=1, num_segments=64): #conservative default, not run anything
+    mask = MaskBM(_b, _m)
     from ..LmBenches import BENCH_CONFIGS
     from ..LmServer import GLOBAL_CONFIG
     from ..LmBenches import Benchmark
     import os
-    Benchmarks = [os.path.basename(BENCH_CONFIGS[b]["path"]) for b in BENCH_CONFIGS.keys()]
+    Benchmarks = [b for b in BENCH_CONFIGS.keys()] #[os.path.basename(BENCH_CONFIGS[b]["path"]) for b in BENCH_CONFIGS.keys()]
     Methods = [name["name"] for name in GLOBAL_CONFIG.config]
     
     records = []
@@ -52,7 +68,7 @@ def evaluate(mask=Test()):#All()):#
         for m in Methods:
             if mask[b][m]: #if use the default mask, all true; if use the test mask, only one true
                 B = Benchmark.asAuto(b)
-                B.run(model=m, max_qa=64, num_segments=64)
+                B.run(model=m, max_qa=max_qa, num_segments=num_segments)
                 record = {"method": m, **(B.record)}
                 records.append(record)
     
