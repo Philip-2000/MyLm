@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import torch
+import torch.distributed as dist
 
 class EgoGPT_7b_EgoIT_EgoLife_Formater(AFormater):
     def __init__(self):
@@ -30,6 +31,11 @@ class EgoGPT_7b_EgoIT_EgoLife_Formater(AFormater):
 
 class EgoGPT_7b_EgoIT_EgoLife(AModel):
     def __init__(self, model_dir):
+        
+        os.environ["MASTER_ADDR"] = "localhost"
+        os.environ["MASTER_PORT"] = "12355"
+        dist.init_process_group("gloo", rank=0, world_size=1)
+        
         # Pretrained directory path under MODEL_BASE
         self.pretrained = os.path.join(model_dir, "EgoGPT-7b-EgoIT-EgoLife")
         # Make EgoGPT repo importable

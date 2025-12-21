@@ -31,8 +31,10 @@ class LongVA_7B_DPO(AModel):
         # Import LongVA backend from LongVA repo
         import sys
         here = os.path.dirname(os.path.abspath(__file__))
+        #here=/mnt/data/yl/C/MyLm/MyLm/LmServer/Models
+        #longva_local_demo=/mnt/data/yl/C/B/LongVA/local_demo
         # Assume sibling repo path provided in workspace: ../../../../B/LongVA/local_demo
-        longva_local_demo = os.path.abspath(os.path.join(here, "../../../B/LongVA/local_demo"))
+        longva_local_demo = os.path.abspath(os.path.join(here, "../../../../B/LongVA/local_demo"))
         if longva_local_demo not in sys.path:
             sys.path.append(longva_local_demo)
         from longva_backend import LongVA as LongVABackend

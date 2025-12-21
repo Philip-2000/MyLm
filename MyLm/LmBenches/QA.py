@@ -1,23 +1,52 @@
+
 class QA:
-    def __init__(self, question="", answer="", video_key="", uid="None", bench_object=None, **kwargs):
+    def __init__(self, question="", options=[], answer="", video_key="", uid="None", bench_object=None, **kwargs):
         self.uid = uid
         self.question = question
+        self.options = options
         self.answer = answer
         self.video_key = video_key
         self.bench_object = bench_object
         self.result = ""
-        self.query_time = kwargs.get("query_time", None)
-        self.ref_time = {"start": kwargs.get("ref_start", None), "end": kwargs.get("ref_end", None)}
-        self._compare = None
-    
-    def __repr__(self):
-        return f"QA (uid={self.uid}, video_key={self.video_key}, question={self.question}, answer={self.answer}, query_time={self.query_time}, ref_time={self.ref_time})"
 
+        from .TS import TS
+        from .Video import DEFAULT_EXPERIENCE_START_BASE
+        self.query_time = kwargs.get("query_time", None)
+        if self.query_time is None:
+            dur = self.bench_object.Videos[self.video_key].duration if self.bench_object and self.video_key in self.bench_object.Videos else 0
+            self.query_time = TS(None, Natural_Time=DEFAULT_EXPERIENCE_START_BASE+dur, Continuous_Time=dur, Video_path=self.bench_object.Videos[self.video_key].path if self.bench_object and self.video_key in self.bench_object.Videos else None, Video_Time=dur)
+        
+        self.ref_start = kwargs.get("ref_start", None)
+        if self.ref_start is None:
+            dur = 0
+            self.ref_start = TS(None, Natural_Time=DEFAULT_EXPERIENCE_START_BASE+dur, Continuous_Time=dur, Video_path=self.bench_object.Videos[self.video_key].path if self.bench_object and self.video_key in self.bench_object.Videos else None, Video_Time=dur)
+        
+        self.ref_end = kwargs.get("ref_end", None)
+        if self.ref_end is None:
+            dur = self.bench_object.Videos[self.video_key].duration if self.bench_object and self.video_key in self.bench_object.Videos else 0
+            self.ref_end = TS(None, Natural_Time=DEFAULT_EXPERIENCE_START_BASE+dur, Continuous_Time=dur, Video_path=self.bench_object.Videos[self.video_key].path if self.bench_object and self.video_key in self.bench_object.Videos else None, Video_Time=dur)
+        
+        self._compare = None
+
+    @property
+    def query(self):
+        return self.question + (" Options: " + " ".join([chr(65+i) + ". " + str(option) for i, option in enumerate(self.options)]) if self.options else "")
+
+    def __repr__(self):
+        return f"QA (uid={self.uid}, video_key={self.video_key}, question={self.question}, options={self.options}, answer={self.answer}, query_time={self.query_time}, ref_time={self.ref_time})"
+
+    @property
+    def prompt(self):
+        return f"IMPORTANT: You MUST answer based ONLY on the content of the video.\n Video ID: {self.video_key}\nQuestion: {self.query}\n【Strict Instructions】1. Answer ONLY with the single option letter (e.g., A/B/C/D/E/F) that matches the correct answer.2. Do NOT add any extra explanation, video details, reasoning, or irrelevant text.Answer:"
+        #return f"Video ID: {self.video_key}\nQuestion: {self.question}\nAnswer:"
+        
     def run(self, model, **kwargs):
-        prompt = f"IMPORTANT: You MUST answer based ONLY on the content of the video.\n Video ID: {self.video_key}\nQuestion: {self.question}\n【Strict Instructions】1. Answer ONLY with the single option letter (e.g., A/B/C/D/E/F) that matches the correct answer.2. Do NOT add any extra explanation, video details, reasoning, or irrelevant text.Answer:"
-        # prompt = f"Video ID: {self.video_key}\nQuestion: {self.question}\nAnswer:"
         from .. import call
-        self.result = call(model, {"content": [{"text": prompt}, {"video":self.video_path}], **kwargs} )
+        self.result = call(model, {"content": [{"text": self.prompt}, {"video":self.video_path}], **kwargs} )
+        return self.result, self.compare(self.result)
+    
+    def evaluate(self, function, **kwargs):
+        self.result = function(self, **kwargs)
         return self.result, self.compare(self.result)
 
     @property
@@ -34,6 +63,50 @@ class QA:
             sol_letter = ans[8] if len(ans) >= 10 and ans.startswith("<answer>") and ans.endswith("</answer>") else ans[0]
             self._compare = (sol_letter.strip().lower() == self.answer.strip().lower())
         return self._compare
+
+    @property
+    def to_dict(self):
+        return {
+            "uid": self.uid,
+            "video_key": self.video_key,
+            "question": self.question,
+            "options": self.options,
+            "answer": self.answer,
+            "result": self.result,
+            "correct": self._compare,
+            "query_time": self.query_time,
+            "ref_time": self.ref_time,
+        }
+    
+    @property
+    def execution(self):
+        return {
+            "TIME": {
+                "seconds_natural_s": self.query_time.natural_second,
+                "seconds_experience_s": self.query_time.continuous_second,
+                "seconds_activity_s": None,
+                "seconds_video_s": self.query_time.video_second
+            },
+            "question": self.question,
+            "ref_time": {
+                "STARTSTAMP": {
+                    "seconds_natural_s": self.ref_start.natural_second,
+                    "seconds_experience_s": self.ref_start.continuous_second,
+                    "seconds_activity_s": None,
+                    "seconds_video_s": self.ref_start.video_second
+                },
+                "ENDSTAMP": {
+                    "seconds_natural_s": self.ref_end.natural_second,
+                    "seconds_experience_s": self.ref_end.continuous_second,
+                    "seconds_activity_s": None,
+                    "seconds_video_s": self.ref_end.video_second
+                }
+            },
+            "answer": self.answer,
+            "response": None,
+            "score": None,
+            "choices": self.options
+        }
 
     @property
     def source(self):
@@ -83,7 +156,8 @@ class QA:
                     sol_letter = "B"
         solution = sol_letter #f"<answer>{sol_letter}</answer>"
         return cls(
-            question=problem,
+            question=qa_dict["problem"],
+            options=[o.split('. ')[1] for o in options],
             answer=solution,
             video_key=qa_dict["problem_id"][:qa_dict["problem_id"].rfind("_")],
             uid = qa_dict["problem_id"],
@@ -116,7 +190,9 @@ class QA:
                     sol_letter = "A"
         solution = sol_letter #f"<answer>{sol_letter}</answer>"
         return cls(
-            question=problem,
+            #question=problem,
+            question=qa_dict["question"].split("\n")[0],
+            options=[o.split(') ')[1] for o in qa_dict["question"].split("\n")[1:] if o],
             answer=solution,
             video_key=qa_dict["video_key"],
             uid = qa_dict["uid"],
@@ -167,7 +243,9 @@ class QA:
                     sol_letter = "A"
         solution = sol_letter #f"<answer>{sol_letter}</answer>"
         return cls(
-            question=problem,
+            #question=problem,
+            question=qa_dict["problem"],
+            options=[o.split(': ')[1] for o in options],
             answer=solution,
             video_key=qa_dict["problem_id"],
             uid = qa_dict["problem_id"],
@@ -206,7 +284,9 @@ class QA:
             sol_letter = str(sol).strip()[0].upper() if isinstance(sol, str) and sol else "A"
         solution = sol_letter #f"<answer>{sol_letter}</answer>"
         return cls(
-            question=problem,
+            # question=problem,
+            question=qa_dict["question"],
+            options=qa_dict.get("candidates", []),
             answer=solution,
             video_key=qa_dict["video"][:-4],
             uid = qa_dict["uid"],
@@ -247,7 +327,9 @@ class QA:
         sol_letter = solution[8] if len(solution) >= 10 and solution.startswith("<answer>") and solution.endswith("</answer>") else "A"
         solution = sol_letter #f"<answer>{sol_letter}</answer>"
         return cls(
-            question=problem,
+            # question=problem,
+            question = qa_dict["problem"],
+            options = [o.split('. ')[1] for o in opts],
             answer=solution,
             video_key=qa_dict["problem_id"],
             uid = qa_dict["problem_id"],
@@ -286,7 +368,9 @@ class QA:
                 sol_letter = "A"
         solution = sol_letter #f"<answer>{sol_letter}</answer>"
         return cls(
-            question=question,
+            # question=question,
+            question=qa_dict["question"],
+            options=[qa_dict.get(f"option {i}", "") for i in range(6) if qa_dict.get(f"option {i}", "")],
             answer=solution,
             video_key=qa_dict["q_uid"],
             uid = qa_dict["q_uid"],
@@ -294,7 +378,7 @@ class QA:
         )
     
     @classmethod
-    def asEgoLifeQA(cls, qa_dict, bench_object):
+    def asEgoLifeQA(cls, qa_dict, bench_object, video_key):
         """
         {
             "ID": "1",
@@ -351,7 +435,7 @@ class QA:
                 except Exception:
                     sol_letter = "A"
         solution = sol_letter
-        video_key = qa_dict.get("identity") or qa_dict.get("ID") or qa_dict.get("video_key") or "unknown"
+        #video_key = qa_dict.get("identity") or qa_dict.get("ID") or qa_dict.get("video_key") or "unknown"
         uid = qa_dict.get("ID")
         #print("query_time:", qa_dict.get("query_time"))
         #print("target_time:", qa_dict.get("target_time"))
@@ -385,15 +469,28 @@ class QA:
             qa_dict["target_time"]["end_time"] = f"{HH:02d}{MM:02d}{SS:02d}{FF:02d}"
             qa_dict["target_time"]["end_date"] = qa_dict["target_time"]["date"]
 
+
+        query_time = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}"
+        ref_start = f"{qa_dict['target_time']['start_date']}_{qa_dict['identity']}_{qa_dict['target_time']['start_time']}"
+        ref_end = f"{qa_dict['target_time']['end_date']}_{qa_dict['identity']}_{qa_dict['target_time']['end_time']}"
+        
+        
+        QUERY_TS, REFSTART_TS, REFEND_TS = bench_object.Videos[video_key].TSS(query_time, domain="natural"), bench_object.Videos[video_key].TSS(ref_start, domain="natural"), bench_object.Videos[video_key].TSS(ref_end, domain="natural")
+
         return cls(
-            question=question,
+            # question=question,
+            question=qa_dict["question"],
+            options=[qa_dict.get(k) for k in choice_keys if qa_dict.get(k) is not None],
             answer=solution,
             video_key=video_key,
             uid=uid,
             bench_object=bench_object,
-            query_time = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}",
-            ref_start = f"{qa_dict['target_time']['start_date']}_{qa_dict['identity']}_{qa_dict['target_time']['start_time']}",
-            ref_end = f"{qa_dict['target_time']['end_date']}_{qa_dict['identity']}_{qa_dict['target_time']['end_time']}",
+            # query_time = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}",
+            # ref_start = f"{qa_dict['target_time']['start_date']}_{qa_dict['identity']}_{qa_dict['target_time']['start_time']}",
+            # ref_end = f"{qa_dict['target_time']['end_date']}_{qa_dict['identity']}_{qa_dict['target_time']['end_time']}",
+            query_time = QUERY_TS,
+            ref_start = REFSTART_TS,
+            ref_end = REFEND_TS,
         )
     
     @classmethod
@@ -408,13 +505,19 @@ class QA:
             "global_uid": "xlebench_00001",
         },
         """
+
+
+        REFSTART_TS, REFEND_TS = bench_object.Videos[video_key].TSS(qa_dict.get("response_start_time_sec"), domain="natural"), bench_object.Videos[video_key].TSS(qa_dict.get("response_end_time_sec"), domain="natural")
         return cls(
             question=qa_dict["query"],
+            options=[],
             answer=qa_dict.get("answer", "A"),
             video_key=qa_dict["video_uid"],
             uid = qa_dict.get("global_uid", "unknown"),
             bench_object=bench_object,
-            query_time = bench_object.Videos[video_key].duration,
-            ref_start = qa_dict.get("response_start_time_sec", None),
-            ref_end = qa_dict.get("response_end_time_sec", None),
+            # query_time = bench_object.Videos[video_key].duration,
+            # ref_start = qa_dict.get("response_start_time_sec", None),
+            # ref_end = qa_dict.get("response_end_time_sec", None),
+            ref_start = REFSTART_TS,
+            ref_end = REFEND_TS,
         )

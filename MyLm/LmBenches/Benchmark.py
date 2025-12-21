@@ -24,9 +24,15 @@ class Benchmark:
         return self.QAs[index]
     
     def run(self, model, **kwargs):
-        self.qas = self.QAs[:kwargs["max_qa"] if kwargs.get("max_qa", -1) > 0 else len(self.QAs)] if kwargs.get("key", None) is None else [qa for qa in self.QAs if qa.uid in kwargs["key"]]
+        self.qas = self.create_qa(**kwargs)#self.QAs[:kwargs["max_qa"] if kwargs.get("max_qa", -1) > 0 else len(self.QAs)] if kwargs.get("key", None) is None else [qa for qa in self.QAs if qa.uid in kwargs["key"]]
         for qa in self.qas:
             r,c = qa.run(model, **kwargs)
+            print(r,c,qa.answer)
+        
+    def evaluate(self, function, **kwargs):
+        self.qas = self.create_qa(**kwargs)#self.QAs[:kwargs["max_qa"] if kwargs.get("max_qa", -1) > 0 else len(self.QAs)] if kwargs.get("key", None) is None else [qa for qa in self.QAs if qa.uid in kwargs["key"]]
+        for qa in self.qas:
+            r,c = qa.evaluate(function, **kwargs)
             print(r,c,qa.answer)
 
     def compare(self):
@@ -56,7 +62,8 @@ class Benchmark:
             if len(JSO)==0: continue
             THE_VIDEO = VideoEgoLife(path=VIDEO_BASE, video_id=f"DAY8_{k}_01000000", bench_object=self, N=64, create=False)
             THE_VIDEO.video_id = k
-            qa_objects = [QA.asEgoLifeQA(qa_dict, self) for qa_dict in JSO]
+            self.Videos[k] = THE_VIDEO
+            qa_objects = [QA.asEgoLifeQA(qa_dict, self, video_key=k) for qa_dict in JSO]
             THE_VIDEO.QAs = qa_objects
             THE_VIDEO.save_ee()
 
@@ -213,7 +220,7 @@ class Benchmark:
             """
             video_key = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}_{N}f"
             if video_key not in bench.Videos: bench.Videos[video_key] = VideoEgoLife(path=VIDEO_BASE, video_id=video_key, bench_object=bench, N=N, create=kwargs.get("create", False))
-            qa_object = QA.asEgoLifeQA(qa_dict, bench)
+            qa_object = QA.asEgoLifeQA(qa_dict, bench, video_key=video_key)
             bench.QAs.append(qa_object)
             bench.Videos[video_key].append_qa(qa_object) #break
 
@@ -231,7 +238,7 @@ class Benchmark:
             
             video_key = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}_{N}f"
             if video_key not in bench.Videos: bench.Videos[video_key] = VideoEgoLife(path=VIDEO_BASE, video_id=video_key, bench_object=bench, N=N, create=kwargs.get("create", False))
-            qa_object = QA.asEgoLifeQA(qa_dict, bench)
+            qa_object = QA.asEgoLifeQA(qa_dict, bench, video_key=video_key)
             bench.QAs.append(qa_object)
             bench.Videos[video_key].append_qa(qa_object)
             
@@ -294,3 +301,26 @@ class Benchmark:
             return BENCH_CONFIGS[name]["loader"](BENCH_CONFIGS[name]["path"], **kwargs)
         else:
             raise ValueError(f"No benchmark configuration found for name: {name}")
+    
+    # New helper to reorder Videos by number of QAs per video.
+    def sort_videos_by_qa_count(self, reverse=False):
+        """
+        Sort self.Videos (a dict) by the length of each Video's QAs list.
+        After calling this, iteration like `for k, v in self.Videos.items():`
+        will yield items in the sorted order (Python 3.7+ preserves insertion order).
+        Set reverse=True to get descending order (most QAs first).
+        """
+        self.Videos = dict(sorted(self.Videos.items(), key=lambda kv: len(kv[1].QAs), reverse=reverse))
+
+    def create_qa(self, max_videos=-1, max_qa=-1):
+        #(1) sort by video, firstly process videos with more QAs
+        self.sort_videos_by_qa_count(reverse=True)
+        #(2) insert these qas in to self.qas
+        self.qas = []
+        count = 0
+        for video in self.Videos.values():
+            for qa in video.QAs:
+                self.qas.append(qa)
+            count +=1
+            if (max_videos>0 and count>=max_videos) or (max_qa>0 and len(self.qas)>=max_qa):
+                break

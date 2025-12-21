@@ -10,16 +10,12 @@ class All:
 
 class Tes:
     def __getitem__(self, key):
-        return key== "Qwen3-VL-8B-Instruct" # "InternVideo2.5-Chat-8B"
-    #"Qwen3-VL-8B-Instruct" # "LLaVA-NeXT-Video-7B-hf"
+        return key== "Qwen3-VL-8B-Instruct" 
+                    # "LLaVA-NeXT-Video-7B-hf"
                     # "Qwen2.5-VL-7B-Instruct" # √
-                    # "Qwen3-VL-8B-Instruct" # √
                     #"InternVL3_5-8B" # √
-    
                     # "InternVideo2.5-Chat-8B" # √
-                    # "LLaVA-NeXT-Video-7B-hf" 
                     # "llava-onevision-qwen2-7b-ov" # √
-                    
                     #"LLaVA-Video-7B-Qwen2" # √
                     
                     
@@ -32,7 +28,7 @@ class Test:
         return Tes()  if key =="EgoLifeQA" else No()
     
     
-    #b=egoschema        # 500qa,500v
+#b=egoschema        # 500qa,500v
 #b=LongTimeScope    # 450qa,450v
 #b=LongVideoBench   #1202qa,618v
 #b=LVBench          #1549qa,103v

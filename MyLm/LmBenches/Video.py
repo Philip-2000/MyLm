@@ -88,6 +88,7 @@ class Video:
 
     @property
     def execution(self):
+        return {"name": "benches", "experience": self.experience_name, "questions": [qa.execution for qa in self.QAs]}
         return {
             "name": "benches",
             "experience": self.experience_name,
@@ -117,7 +118,7 @@ class Video:
                     "answer": qa.answer,
                     "response": None,
                     "score": None,
-                    "choices": None
+                    "choices": qa.options
                 } for qa in self.QAs
             ]
         }
@@ -371,6 +372,7 @@ class VideoEgoLife(Video):
 
     @property
     def execution(self):
+        return {"name": "benches", "experience": self.experience_name, "questions": [qa.execution for qa in self.QAs]}
         JSON = {
             "name": "benches",
             "experience": self.experience_name,
@@ -404,7 +406,7 @@ class VideoEgoLife(Video):
                         "answer": qa.answer,
                         "response": None,
                         "score": None,
-                        "choices": None
+                        "choices": qa.options
                     }
             JSON["questions"].append(qa_json)
         return JSON
@@ -650,6 +652,7 @@ class VideoXLeBench(Video):
 
     @property
     def execution(self):
+        return {"name": "benches", "experience": self.experience_name, "questions": [qa.execution for qa in self.QAs]}
         JSON = {
             "name": "benches",
             "experience": self.experience_name,
@@ -683,7 +686,7 @@ class VideoXLeBench(Video):
                         "answer": qa.answer,
                         "response": None,
                         "score": None,
-                        "choices": None
+                        "choices": qa.options
                     }
             JSON["questions"].append(qa_json)
         return JSON
