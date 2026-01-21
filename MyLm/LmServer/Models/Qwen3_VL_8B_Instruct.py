@@ -11,6 +11,7 @@ class Qwen3_VL_8B_Instruct_Formater(AFormater):
             assert os.path.exists(v), f"Video path {v} does not exist"
 
             if v.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                #return v
                 return self.video_real(v, **kwargs)
             if os.isdir(v):
                 # a folder of frames
@@ -90,7 +91,11 @@ class Qwen3_VL_8B_Instruct_Formater(AFormater):
         return i
 
     def __call__(self, item, **kwargs):
-        if list(item.keys()) == ["text"]:
+        if list(item.keys()) == ["system"]:
+            return {"type": "text", "text": self.text(item["system"])}
+        elif list(item.keys()) == ["user"]:
+            return {"type": "text", "text": self.text(item["user"])}
+        elif list(item.keys()) == ["text"]:
             return {"type": "text", "text": self.text(item["text"])}
         elif list(item.keys()) == ["image"]:
             return {"type": "image", "image": self.image(item["image"])}
@@ -101,7 +106,7 @@ class Qwen3_VL_8B_Instruct_Formater(AFormater):
     
 class Qwen3_VL_8B_Instruct(AModel):
     def __init__(self, model_dir):
-        model_id = model_dir if model_dir.endswith("Qwen3-VL-8B-Instruct") else os.path.join(model_dir, "Qwen3-VL-8B-Instruct")
+        model_id = model_dir if model_dir.endswith("Qwen3-VL-32B-Instruct") else os.path.join(model_dir, "Qwen3-VL-8B-Instruct")
 
         from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 
@@ -118,9 +123,9 @@ class Qwen3_VL_8B_Instruct(AModel):
             {"role": "user", "content": [self.formater(c, **kwargs) for c in input_data["content"]]}
         ]
 
-        # Preparation for inference
-        inputs = self.processor.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pt").to(self.model.device)
-
+        # Preparation for inference #, fps=24， FIXME: 这个fps=24是最逆天的。
+        inputs = self.processor.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pt", fps=24).to(self.model.device)
+        
         # Inference: Generation of the output
         generated_ids = self.model.generate(**inputs, max_new_tokens=1024)
         generated_ids_trimmed = [ out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids) ]

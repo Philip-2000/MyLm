@@ -1,1 +1,2 @@
+#!/bin/bash
 python $(dirname "${BASH_SOURCE[0]}")/LmServe.py LLaVA-Video-7B-Qwen2

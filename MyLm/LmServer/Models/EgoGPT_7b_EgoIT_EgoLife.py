@@ -18,7 +18,11 @@ class EgoGPT_7b_EgoIT_EgoLife_Formater(AFormater):
         return a
     def __call__(self, item):
         keys = list(item.keys())
-        if keys == ["text"]:
+        if keys == ["system"]:
+            return {"type": "text", "text": self.text(item["system"])}
+        elif keys == ["user"]:
+            return {"type": "text", "text": self.text(item["user"])}
+        elif keys == ["text"]:
             return {"type": "text", "text": self.text(item["text"])}
         elif keys == ["image"]:
             return {"type": "image", "image": self.image(item["image"])}
@@ -95,6 +99,8 @@ class EgoGPT_7b_EgoIT_EgoLife(AModel):
             uniform_sampled_frames = self._np.linspace(0, total_frame_num - 1, max_frames_num, dtype=int)
             frame_idx = uniform_sampled_frames.tolist()
         video = vr.get_batch(frame_idx).asnumpy()
+        # !
+        speech = speech.unsqueeze(0)
         return video, speech, speech_lengths
 
     def __call__(self, input_data):

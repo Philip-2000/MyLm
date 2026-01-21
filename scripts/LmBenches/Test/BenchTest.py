@@ -15,4 +15,12 @@ if __name__ == "__main__":
     from MyLm import Benchmark
     B = Benchmark.asAuto(arg.path, N=arg.N, create=arg.create)
     print(f"Loaded ", B)
-    #B.run(model=arg.model, max_qa=arg.max_qa, key=arg.key, num_segments=64)
+    # B.sort_videos_by_qa_count(reverse=True)
+    # for i, (k,v) in enumerate(B.Videos.items()):
+    #     print(f"Sorted Video {i}: key={k}, num_qa={len(v.QAs)}, duration={v.duration}s")
+    #     if i >= 8: break
+    # B.sort_videos_by_duration(reverse=True)
+    # for i, (k,v) in enumerate(B.Videos.items()):
+    #     print(f"Duration Sorted Video {i}: key={k}, num_qa={len(v.QAs)}, duration={v.duration}s") 
+    #     if i >= 8: break
+    # B.run(model=arg.model, max_qa=arg.max_qa, key=arg.key, num_segments=64)

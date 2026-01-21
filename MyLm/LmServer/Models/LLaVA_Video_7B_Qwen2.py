@@ -43,7 +43,11 @@ class LLaVA_Video_7B_Qwen2_Formater(AFormater):
         return t
     
     def __call__(self, item, **kwargs):
-        if list(item.keys()) == ["text"]:
+        if list(item.keys()) == ["system"]:
+            return {"type": "text", "text": self.text(item["system"])}
+        elif list(item.keys()) == ["user"]:
+            return {"type": "text", "text": self.text(item["user"])}
+        elif list(item.keys()) == ["text"]:
             return {"text": self.text(item["text"])}
         elif list(item.keys()) == ["image"]:
             return {"image": self.image(item["image"])}

@@ -11,6 +11,7 @@ class Qwen2_5_VL_7B_Instruct_Formater(AFormater):
             assert os.path.exists(v), f"Video path {v} does not exist"
 
             if v.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                #return v
                 return self.video_real(v, **kwargs)
             if os.isdir(v):
                 # a folder of frames
@@ -157,7 +158,11 @@ class Qwen2_5_VL_7B_Instruct_Formater(AFormater):
         return "file://"+i
 
     def __call__(self, item, **kwargs):
-        if list(item.keys()) == ["text"]:
+        if list(item.keys()) == ["system"]:
+            return {"type": "text", "text": self.text(item["system"])}
+        elif list(item.keys()) == ["user"]:
+            return {"type": "text", "text": self.text(item["user"])}
+        elif list(item.keys()) == ["text"]:
             return {"type": "text", "text": self.text(item["text"])}
         elif list(item.keys()) == ["image"]:
             return {"type": "image", "image": self.image(item["image"])}
@@ -199,6 +204,7 @@ class Qwen2_5_VL_7B_Instruct(AModel):
         from qwen_vl_utils import process_vision_info
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         image_inputs, video_inputs = process_vision_info(messages)
+        
         inputs = self.processor(
             text=[text],
             images=image_inputs,

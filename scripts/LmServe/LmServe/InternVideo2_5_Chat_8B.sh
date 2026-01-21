@@ -1,1 +1,2 @@
+#!/bin/bash
 python $(dirname "${BASH_SOURCE[0]}")/LmServe.py InternVideo2.5-Chat-8B

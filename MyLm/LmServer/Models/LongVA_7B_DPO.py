@@ -15,7 +15,11 @@ class LongVA_7B_DPO_Formater(AFormater):
         return v
 
     def __call__(self, item):
-        if list(item.keys()) == ["text"]:
+        if list(item.keys()) == ["system"]:
+            return {"type": "text", "text": self.text(item["system"])}
+        elif list(item.keys()) == ["user"]:
+            return {"type": "text", "text": self.text(item["user"])}
+        elif list(item.keys()) == ["text"]:
             return {"type": "text", "text": self.text(item["text"])}
         elif list(item.keys()) == ["image"]:
             return {"type": "image", "image": self.image(item["image"])}

@@ -81,6 +81,7 @@ class QA:
     @property
     def execution(self):
         return {
+            "uid": self.uid,
             "TIME": {
                 "seconds_natural_s": self.query_time.natural_second,
                 "seconds_experience_s": self.query_time.continuous_second,
@@ -485,9 +486,6 @@ class QA:
             video_key=video_key,
             uid=uid,
             bench_object=bench_object,
-            # query_time = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}",
-            # ref_start = f"{qa_dict['target_time']['start_date']}_{qa_dict['identity']}_{qa_dict['target_time']['start_time']}",
-            # ref_end = f"{qa_dict['target_time']['end_date']}_{qa_dict['identity']}_{qa_dict['target_time']['end_time']}",
             query_time = QUERY_TS,
             ref_start = REFSTART_TS,
             ref_end = REFEND_TS,

@@ -3,7 +3,7 @@ def serve(model_name: str):
     from ..Models import create
     from fastapi import FastAPI
     app = FastAPI()
-    model_instance = create(model_name)
+    model_instance = create(model_name.split(":")[0]) #CUDA_VISIBLE_DEVICES=xxx should be in command line, not here; generally a->0, b->1,...
     @app.post("/call")
     async def call(input_data: dict):
         return model_instance(input_data)

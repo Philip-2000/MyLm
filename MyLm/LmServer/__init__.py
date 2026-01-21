@@ -1,5 +1,14 @@
 import os
-GLOBAL_CONFIG = [
+
+ONLINE_CONFIG = {
+    "Qwen3-Ours": {"name": "Qwen3-Ours", "base_url":"http://10.0.2.232:12345/v1", "model":"qwen3-235b-instruct", "api_key":"-"},
+    
+}
+
+
+
+BASE_CONFIG = [
+    {"name": "Qwen3-32B",                   "port": 7001, "env": "try"},
     {"name": "InternVideo2.5-Chat-8B",      "port": 8001, "env": "ivd"},
     {"name": "InternVL3_5-8B",              "port": 8002, "env": "try"},
     {"name": "Qwen3-VL-8B-Instruct",        "port": 8003, "env": "try"},
@@ -9,17 +18,13 @@ GLOBAL_CONFIG = [
     {"name": "llava-onevision-qwen2-7b-ov", "port": 8007, "env": "llava"},
     {"name": "LongVA-7B-DPO",               "port": 8008, "env": "longva"},
     {"name": "EgoGPT-7b-EgoIT-EgoLife",     "port": 8009, "env": "egogpt"},
-    {"name": "Qwen4-VL-8B-Instruct",        "port":18003, "env": "try",   "source": "Qwen3-VL-8B-Instruct"},
-    {"name": "Qwen5-VL-8B-Instruct",        "port":28003, "env": "try",   "source": "Qwen3-VL-8B-Instruct"},
-    {"name": "Qwen6-VL-8B-Instruct",        "port":38003, "env": "try",   "source": "Qwen3-VL-8B-Instruct"},
-    {"name": "Qwen7-VL-8B-Instruct",        "port":48003, "env": "try",   "source": "Qwen3-VL-8B-Instruct"},
-    {"name": "InternVideo2.6-Chat-8B",      "port":18001, "env": "ivd",   "source": "InternVideo2.5-Chat-8B"},
-    {"name": "InternVideo2.7-Chat-8B",      "port":28001, "env": "ivd",   "source": "InternVideo2.5-Chat-8B"},
-    {"name": "InternVideo2.8-Chat-8B",      "port":38001, "env": "ivd",   "source": "InternVideo2.5-Chat-8B"},
-    {"name": "LLaVA-VVdeo-7B-Qwen2",        "port":18006, "env": "llava", "source": "LLaVA-Video-7B-Qwen2"},
-    {"name": "LLaVA-VVVeo-7B-Qwen2",        "port":28006, "env": "llava", "source": "LLaVA-Video-7B-Qwen2"},
-    {"name": "LLaVA-VVVVo-7B-Qwen2",        "port":38006, "env": "llava", "source": "LLaVA-Video-7B-Qwen2"},
 ]
+
+
+GLOBAL_CONFIG = [ [conf.copy()] + [{"name":conf['name']+ f":{chr(ord('a')+i)}", "port":conf["port"]+10000*i, "env":conf["env"]}  for i in range(5)] for conf in BASE_CONFIG ]
+# Flatten the list
+GLOBAL_CONFIG = [item for sublist in GLOBAL_CONFIG for item in sublist]
+
 
 class GlobalConfig:
     def __init__(self):

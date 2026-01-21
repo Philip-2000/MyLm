@@ -24,7 +24,8 @@ class Benchmark:
         return self.QAs[index]
     
     def run(self, model, **kwargs):
-        self.qas = self.create_qa(**kwargs)#self.QAs[:kwargs["max_qa"] if kwargs.get("max_qa", -1) > 0 else len(self.QAs)] if kwargs.get("key", None) is None else [qa for qa in self.QAs if qa.uid in kwargs["key"]]
+        self.create_qa(**kwargs)#self.QAs[:kwargs["max_qa"] if kwargs.get("max_qa", -1) > 0 else len(self.QAs)] if kwargs.get("key", None) is None else [qa for qa in self.QAs if qa.uid in kwargs["key"]]
+        print("Running Benchmark:", self.name, "with", len(self.qas), "QAs")
         for qa in self.qas:
             r,c = qa.run(model, **kwargs)
             print(r,c,qa.answer)
@@ -312,15 +313,33 @@ class Benchmark:
         """
         self.Videos = dict(sorted(self.Videos.items(), key=lambda kv: len(kv[1].QAs), reverse=reverse))
 
-    def create_qa(self, max_videos=-1, max_qa=-1):
+    
+    # New helper to reorder Videos by number of QAs per video.
+    def sort_videos_by_duration(self, reverse=False):
+        """
+        Sort self.Videos (a dict) by the length of each Video's QAs list.
+        After calling this, iteration like `for k, v in self.Videos.items():`
+        will yield items in the sorted order (Python 3.7+ preserves insertion order).
+        Set reverse=True to get descending order (most QAs first).
+        """
+        self.Videos = dict(sorted(self.Videos.items(), key=lambda kv: kv[1].duration, reverse=reverse))
+
+    def create_qa(self, max_videos=-1, max_qa=-1,num_segments =64):
         #(1) sort by video, firstly process videos with more QAs
         self.sort_videos_by_qa_count(reverse=True)
         #(2) insert these qas in to self.qas
         self.qas = []
         count = 0
         for video in self.Videos.values():
+            flag = False
             for qa in video.QAs:
                 self.qas.append(qa)
+                #!
+                if(max_qa>0 and len(self.qas)>=max_qa):
+                    flag = True
+                    break
+            if flag:
+                break
             count +=1
-            if (max_videos>0 and count>=max_videos) or (max_qa>0 and len(self.qas)>=max_qa):
+            if (max_videos>0 and count>=max_videos):
                 break

@@ -151,7 +151,7 @@ class VideoEgoLife(Video):
 
         super().__init__(path, video_id, bench_object)
         self.path=self.video_path
-        #if self.create or not os.path.exists(self.path): self.toVideo()
+        if self.create or not os.path.exists(self.path): self.toVideo()
 
     @property
     def video(self): #lazy load video
@@ -267,6 +267,7 @@ class VideoEgoLife(Video):
         for packet in stream.encode():
             container.mux(packet)
         container.close()
+        print(f"Saved concatenated video to {self.video_path}")
 
     @property
     def experience(self):
@@ -373,43 +374,6 @@ class VideoEgoLife(Video):
     @property
     def execution(self):
         return {"name": "benches", "experience": self.experience_name, "questions": [qa.execution for qa in self.QAs]}
-        JSON = {
-            "name": "benches",
-            "experience": self.experience_name,
-            "questions": []
-        }
-        from .TS import TS
-        for qa in self.QAs:
-            QUERY_TS, REFSTART_TS, REFEND_TS = self.TSS(qa.query_time, domain="natural"), self.TSS(qa.ref_time["start"], domain="natural"), self.TSS(qa.ref_time["end"], domain="natural")
-            qa_json = {
-                        "TIME": {
-                            "seconds_natural_s": QUERY_TS.natural_second,
-                            "seconds_experience_s": QUERY_TS.continuous_second,
-                            "seconds_activity_s": None, #this is too hard to compute, and I think this may not be used in the future, so set to None
-                            "seconds_video_s": QUERY_TS.video_second
-                        },
-                        "question": qa.question,
-                        "ref_time": {
-                            "STARTSTAMP": {
-                                "seconds_natural_s": REFSTART_TS.natural_second,
-                                "seconds_experience_s": REFSTART_TS.continuous_second,
-                                "seconds_activity_s": None, # as above
-                                "seconds_video_s": REFSTART_TS.video_second
-                            },
-                            "ENDSTAMP": {
-                                "seconds_natural_s": REFEND_TS.natural_second,
-                                "seconds_experience_s": REFEND_TS.continuous_second,
-                                "seconds_activity_s": None, # as above
-                                "seconds_video_s": REFEND_TS.video_second
-                            }
-                        },
-                        "answer": qa.answer,
-                        "response": None,
-                        "score": None,
-                        "choices": qa.options
-                    }
-            JSON["questions"].append(qa_json)
-        return JSON
 
     def save_experience(self):
         from EgoCL.paths import EPRC_ROOT
@@ -487,36 +451,6 @@ class VideoXLeBench(Video):
                 "video_uid": "66c507b5-211d-4955-a722-704440ddf751",
                 "start_time": "09:50",
                 "end_time": "10:17"
-            },
-            {
-                "video_uid": "1246d6ec-5620-4f71-8b4b-d823775f58c2",
-                "start_time": "11:35",
-                "end_time": "12:05"
-            },
-            {
-                "video_uid": "2fd1837a-613b-48af-9ad2-0222f8fd6b69",
-                "start_time": "12:10",
-                "end_time": "12:44"
-            },
-            {
-                "video_uid": "56504e4e-a228-4b28-baa4-1ce2de03c2d4",
-                "start_time": "12:49",
-                "end_time": "13:30"
-            },
-            {
-                "video_uid": "d29b209e-cbc7-40a7-a0d6-acf803b86c78",
-                "start_time": "19:05",
-                "end_time": "19:13"
-            },
-            {
-                "video_uid": "4dab2e2a-6f27-4c5f-ae51-c39613e0d62c",
-                "start_time": "20:05",
-                "end_time": "20:47"
-            },
-            {
-                "video_uid": "cf90f24b-32de-452a-b154-03ca5e47099a",
-                "start_time": "22:05",
-                "end_time": "22:14"
             }
         ]
         """
