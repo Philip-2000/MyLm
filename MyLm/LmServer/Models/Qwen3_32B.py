@@ -1,4 +1,4 @@
-
+import os
 class Qwen3_32B:
     def __init__(self, model_dir):
         model_id = model_dir if model_dir.endswith("Qwen3-32B") else os.path.join(model_dir, "Qwen3-32B")

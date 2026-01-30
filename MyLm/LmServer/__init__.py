@@ -18,6 +18,7 @@ BASE_CONFIG = [
     {"name": "llava-onevision-qwen2-7b-ov", "port": 8007, "env": "llava"},
     {"name": "LongVA-7B-DPO",               "port": 8008, "env": "longva"},
     {"name": "EgoGPT-7b-EgoIT-EgoLife",     "port": 8009, "env": "egogpt"},
+    {"name": "Qwen3_Embedding_0.6B",        "port": 9001, "env": "try"},
 ]
 
 
