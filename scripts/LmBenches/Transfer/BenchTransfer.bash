@@ -1,4 +1,4 @@
-#b=EgoSchema        # 500qa,500v
+#b=EgoSchema        # 5031qa,5031v
 #b=LongTimeScope    # 450qa,450v
 #b=LongVideoBench   #1202qa,618v
 #b=LVBench          #1549qa,103v

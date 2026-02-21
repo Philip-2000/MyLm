@@ -28,6 +28,10 @@ class Video:
     def duration(self):
         import av
         return self.video.duration / av.time_base
+    
+    @property
+    def duration_s(self):
+        return self.duration
 
     @property
     def bench_name(self):
@@ -151,7 +155,11 @@ class VideoEgoLife(Video):
 
         super().__init__(path, video_id, bench_object)
         self.path=self.video_path
-        if self.create or not os.path.exists(self.path): self.toVideo()
+        if self.create or not os.path.exists(self.path):
+            try:
+                self.toVideo()
+            except Exception as e:
+                print(f"Error creating video for {self.video_id}: {e}")
 
     @property
     def video(self): #lazy load video
@@ -181,6 +189,10 @@ class VideoEgoLife(Video):
     @property
     def duration(self):
         return self.TSS.duration
+    
+    @property
+    def duration_s(self):
+        return self.TSS.duration_seconds
 
     @property
     def cache_dir(self):

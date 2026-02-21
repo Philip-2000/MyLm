@@ -50,7 +50,7 @@ class MaskBM:
         return self.MASKM if self.b=="All" else (No() if self.b=="None" or keyb != self.b else (self.MASKM))
 
 
-def evaluate(_b="None", _m="None", max_qa=1, num_segments=64): #conservative default, not run anything
+def evaluate(_b="None", _m="None", max_qa=1, num_segments=64, load_qa=-1, **kwargs): #conservative default, not run anything
     mask = MaskBM(_b, _m)
     print("Evaluation Mask - Benchmark:", _b, "Method:", _m)
     from ..LmBenches import BENCH_CONFIGS
@@ -59,6 +59,7 @@ def evaluate(_b="None", _m="None", max_qa=1, num_segments=64): #conservative def
     import os
     Benchmarks = [b for b in BENCH_CONFIGS.keys()] #[os.path.basename(BENCH_CONFIGS[b]["path"]) for b in BENCH_CONFIGS.keys()]
     Methods = [name["name"] for name in GLOBAL_CONFIG.config]
+    Par = [name["par"] for name in GLOBAL_CONFIG.config]
     
     records = []
     for b in Benchmarks:
@@ -66,10 +67,10 @@ def evaluate(_b="None", _m="None", max_qa=1, num_segments=64): #conservative def
             is_match = mask[b][m]
             # print(f"Bench[{b}] + Model[{m}] → 匹配结果: {is_match}")
             if mask[b][m]: #if use the default mask, all true; if use the test mask, only one true
-                B = Benchmark.asAuto(b)
+                B = Benchmark.asAuto(b, load_qa=load_qa)
                 print("Evaluating Benchmark:", b, "with Method:", m)
-                B.run(model=m, max_qa=max_qa, num_segments=num_segments)
-                record = {"method": m, **(B.record)}
+                B.run(model=m, max_qa=max_qa, num_segments=num_segments, **kwargs)
+                record = {"method": m, "par": Par[Methods.index(m)], **(B.record)}
                 records.append(record)
     
     import json, os

@@ -3,7 +3,6 @@ import os
 from PIL import Image
 import numpy as np
 
-
 class LLaVA_NeXT_Video_7B_hf_Formater(AFormater):
     def __init__(self):
         self.target_size = (448,448)
@@ -108,7 +107,10 @@ class LLaVA_NeXT_Video_7B_hf(AModel):
         from transformers import LlavaNextVideoProcessor, LlavaNextVideoForConditionalGeneration
         import torch, os
         #"llava-hf/LLaVA-NeXT-Video-7B-hf"
-        model_id = model_dir if model_dir.endswith("LLaVA-NeXT-Video-7B-hf") else os.path.join(model_dir, "LLaVA-NeXT-Video-7B-hf")
+        S = "LLaVA-NeXT-Video-7B-hf"
+        from .. import GLOBAL_CONFIG
+        T = S.replace("7B-hf", GLOBAL_CONFIG[S]["par"])
+        model_id = model_dir.replace(S, T) if model_dir.endswith(S) else os.path.join(model_dir, T)
 
         self.model = LlavaNextVideoForConditionalGeneration.from_pretrained(model_id, torch_dtype=torch.float16, low_cpu_mem_usage=True).to(0)
         self.processor = LlavaNextVideoProcessor.from_pretrained(model_id)

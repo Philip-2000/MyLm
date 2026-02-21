@@ -61,7 +61,10 @@ class llava_onevision_qwen2_7b_ov_Formater(AFormater):
 
 class llava_onevision_qwen2_7b_ov(AModel):
     def __init__(self, model_dir):
-        model_id = model_dir if model_dir.endswith("llava-onevision-qwen2-7b-ov") else os.path.join(model_dir, "llava-onevision-qwen2-7b-ov")
+        S = "llava-onevision-qwen2-7b-ov"
+        from .. import GLOBAL_CONFIG
+        T = S.replace("7b-ov", GLOBAL_CONFIG[S]["par"])
+        model_id = model_dir.replace(S, T) if model_dir.endswith(S) else os.path.join(model_dir, T)
         model_name, device_map, device, llava_model_args = "llava_qwen", "auto", "cuda", {"multimodal": True, "attn_implementation": "sdpa"}
         
         from llava.model.builder import load_pretrained_model

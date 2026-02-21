@@ -126,16 +126,16 @@ class InternVL3_5_8B_Formater(AFormater):
 class InternVL3_5_8B(AModel):
     def __init__(self, model_dir):
         from transformers import AutoModelForCausalLM, AutoTokenizer
-        model_id = model_dir if model_dir.endswith("InternVL3_5-8B") else os.path.join(model_dir, "InternVL3_5-8B")
+        S = "InternVL3_5-8B"
+        from .. import GLOBAL_CONFIG
+        T = S.replace("8B", GLOBAL_CONFIG[S]["par"])
+        model_id = model_dir.replace(S, T) if model_dir.endswith(S) else os.path.join(model_dir, T)
         import torch
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True).half().cuda().to(torch.bfloat16)
         self.model.eval()
         self.formater = InternVL3_5_8B_Formater()
         
-
-    #尤其是这个Intern你知道吗，为什么他妈的，图像缩放什么的这些操作竟然也要放在外层使用的时候吗？你就不能封装在内层吗？太奇怪了呀
-
     def __call__(self, input_data, **kwargs):
         
         max_num_frames = 512

@@ -106,8 +106,10 @@ class Qwen3_VL_8B_Instruct_Formater(AFormater):
     
 class Qwen3_VL_8B_Instruct(AModel):
     def __init__(self, model_dir):
-        model_id = model_dir if model_dir.endswith("Qwen3-VL-32B-Instruct") else os.path.join(model_dir, "Qwen3-VL-8B-Instruct")
-
+        S = "Qwen3-VL-8B-Instruct"
+        from .. import GLOBAL_CONFIG
+        T = S.replace("8B-Instruct", GLOBAL_CONFIG[S]["par"])
+        model_id = model_dir.replace(S, T) if model_dir.endswith(S) else os.path.join(model_dir, T)
         from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 
         self.model = Qwen3VLForConditionalGeneration.from_pretrained(model_id, dtype="auto", device_map="auto")

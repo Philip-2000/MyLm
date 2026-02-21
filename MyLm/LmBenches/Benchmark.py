@@ -9,6 +9,15 @@ class Benchmark:
         self.Videos = {}
         self.QAs = [] # the full QA set containing every QA
         self.qas = [] # the real QAs to run in current test
+        self._ENCODER=None
+
+    @property
+    def ENCODER(self):
+        if self._ENCODER is None:
+            from sentence_transformers import SentenceTransformer
+            from . import ENCODER_PATH
+            self._ENCODER = SentenceTransformer(ENCODER_PATH)
+        return self._ENCODER
     
     def __repr__(self):
         return (f"Benchmark: {self.name}, len={len(self.QAs)} QAs, {len(self.Videos)} videos")
@@ -23,18 +32,47 @@ class Benchmark:
     def __getitem__(self, index):
         return self.QAs[index]
     
+    def create_qa(self, max_videos=-1, max_qa=-1, num_segments=64, **kwargs):
+        #(1) sort by video, firstly process videos with more QAs
+        self.sort_videos_by_qa_count(reverse=True)
+        #(2) insert these qas in to self.qas
+        self.qas = []
+        count = 0
+        for video in self.Videos.values():
+            flag = False
+            for qa in video.QAs:
+                self.qas.append(qa)
+                #!
+                if(max_qa>0 and len(self.qas)>=max_qa):
+                    flag = True
+                    break
+            if flag:
+                break
+            count +=1
+            if (max_videos>0 and count>=max_videos):
+                break
+    
     def run(self, model, **kwargs):
         self.create_qa(**kwargs)#self.QAs[:kwargs["max_qa"] if kwargs.get("max_qa", -1) > 0 else len(self.QAs)] if kwargs.get("key", None) is None else [qa for qa in self.QAs if qa.uid in kwargs["key"]]
         print("Running Benchmark:", self.name, "with", len(self.qas), "QAs")
         for qa in self.qas:
-            r,c = qa.run(model, **kwargs)
-            print(r,c,qa.answer)
-        
+            try:
+                if kwargs.get("do_run", True): r = qa.run(model, **kwargs)
+                if kwargs.get("do_strong_run", False): rs= qa.run_strong(model, **kwargs)
+                if kwargs.get("do_compare", True): c = qa.compare()
+                print(qa.answer,qa.delay_s,qa.delay_strong_s)
+            except Exception as e:
+                from time import sleep
+                print("Error running QA:", qa.uid, e)
+                sleep(60) 
+                
     def evaluate(self, function, **kwargs):
+        raise NotImplementedError("Benchmark.evaluate() is not implemented yet.")
         self.qas = self.create_qa(**kwargs)#self.QAs[:kwargs["max_qa"] if kwargs.get("max_qa", -1) > 0 else len(self.QAs)] if kwargs.get("key", None) is None else [qa for qa in self.QAs if qa.uid in kwargs["key"]]
         for qa in self.qas:
-            r,c = qa.evaluate(function, **kwargs)
-            print(r,c,qa.answer)
+            r = qa.evaluate(function, **kwargs)
+            c = qa.compare()
+            print(r,c,qa.answer,qa.delay_s,qa.delay_rate)
 
     def compare(self):
         results = [qa.compare() for qa in self.qas]
@@ -42,11 +80,20 @@ class Benchmark:
 
     @property
     def record(self):
+        # delay_s_avg = sum([qa.delay_s for qa in self.qas if qa.delay_s is not None]) / len([qa for qa in self.qas if qa.delay_s is not None]) if self.qas else None
+        # delay_s_dev = (sum([(qa.delay_s - delay_s_avg)**2 for qa in self.qas if qa.delay_s is not None]) / len([qa for qa in self.qas if qa.delay_s is not None]))**0.5 if self.qas else None
+        # delay_rate_avg = sum([qa.delay_rate for qa in self.qas if qa.delay_rate is not None]) / len([qa for qa in self.qas if qa.delay_rate is not None]) if self.qas else None
+        # delay_rate_dev = (sum([(qa.delay_rate - delay_rate_avg)**2 for qa in self.qas if qa.delay_rate is not None]) / len([qa for qa in self.qas if qa.delay_rate is not None]))**0.5 if self.qas else None
+
         return {
             "benchmark": self.name,
             "total": len(self.qas),
-            "correct": sum([int(qa._compare) for qa in self.qas]),
-            "accuracy": sum([int(qa._compare) for qa in self.qas]) / len(self.qas) if self.qas else 0,
+            # "correct": sum([int(qa.score["option"]) for qa in self.qas]),
+            # "accuracy": sum([int(qa.score["option"]) for qa in self.qas]) / len(self.qas) if self.qas else 0,
+            # "delay_s_avg": delay_s_avg,
+            # "delay_s_dev": delay_s_dev,
+            # "delay_rate_avg": delay_rate_avg,
+            # "delay_rate_dev": delay_rate_dev, 
             "records": {qa.uid: qa.record for qa in self.qas}
         }
     
@@ -183,7 +230,7 @@ class Benchmark:
         JSON_PATH = opj(path, "EgoLifeQA", "EgoLifeQA.json") #暂时是从那个只公布了的A1_JAKE直接复制过来的，就是说里面只有JAKE的问答，如果以后全公布了那就应该全融合在一起在这个文件中
         VIDEO_BASE = path
         N = kwargs.get("N", 64)
-        for qa_dict in tqdm.tqdm(json.load(open(JSON_PATH,"r"))):
+        for qa_dict in tqdm.tqdm(json.load(open(JSON_PATH,"r"))[:kwargs.get("load_qa", -1) if kwargs.get("load_qa", -1)>0 else None]):
             """
             {
                 "ID": "1",
@@ -235,7 +282,7 @@ class Benchmark:
         JSON_PATH = opj(path, "merge.json")
         VIDEO_BASE = opj(path, "..", "EgoLife")
         N = kwargs.get("N", 64)
-        for qa_dict in tqdm.tqdm(json.load(open(JSON_PATH,"r"))):
+        for qa_dict in tqdm.tqdm(json.load(open(JSON_PATH,"r"))[:kwargs.get("load_qa", -1) if kwargs.get("load_qa", -1)>0 else None]):
             
             video_key = f"{qa_dict['query_time']['date']}_{qa_dict['identity']}_{qa_dict['query_time']['time']}_{N}f"
             if video_key not in bench.Videos: bench.Videos[video_key] = VideoEgoLife(path=VIDEO_BASE, video_id=video_key, bench_object=bench, N=N, create=kwargs.get("create", False))
@@ -254,7 +301,7 @@ class Benchmark:
         VIDEO_BASE = opj(path, "..", "Ego4d", "v2", "full_scale")
         N = kwargs.get("N", 64)
         
-        for JSON_FILE in tqdm.tqdm([_ for _ in os.listdir(JSON_PATH) if _.endswith(".json")]):
+        for JSON_FILE in tqdm.tqdm([_ for _ in os.listdir(JSON_PATH) if _.endswith(".json")][:kwargs.get("load_qa", -1) if kwargs.get("load_qa", -1)>0 else None]):
             try:
                 JSON = json.load(open(opj(JSON_PATH, JSON_FILE),"r"))
                 video_key = f"{JSON['metadata']['persona_id']}_{JSON['metadata']['memory_id']}_{N}f"
@@ -323,23 +370,3 @@ class Benchmark:
         Set reverse=True to get descending order (most QAs first).
         """
         self.Videos = dict(sorted(self.Videos.items(), key=lambda kv: kv[1].duration, reverse=reverse))
-
-    def create_qa(self, max_videos=-1, max_qa=-1,num_segments =64):
-        #(1) sort by video, firstly process videos with more QAs
-        self.sort_videos_by_qa_count(reverse=True)
-        #(2) insert these qas in to self.qas
-        self.qas = []
-        count = 0
-        for video in self.Videos.values():
-            flag = False
-            for qa in video.QAs:
-                self.qas.append(qa)
-                #!
-                if(max_qa>0 and len(self.qas)>=max_qa):
-                    flag = True
-                    break
-            if flag:
-                break
-            count +=1
-            if (max_videos>0 and count>=max_videos):
-                break

@@ -8,6 +8,7 @@ class QA:
         self.video_key = video_key
         self.bench_object = bench_object
         self.result = ""
+        self.result_strong = ""
 
         from .TS import TS
         from .Video import DEFAULT_EXPERIENCE_START_BASE
@@ -26,7 +27,10 @@ class QA:
             dur = self.bench_object.Videos[self.video_key].duration if self.bench_object and self.video_key in self.bench_object.Videos else 0
             self.ref_end = TS(None, Natural_Time=DEFAULT_EXPERIENCE_START_BASE+dur, Continuous_Time=dur, Video_path=self.bench_object.Videos[self.video_key].path if self.bench_object and self.video_key in self.bench_object.Videos else None, Video_Time=dur)
         
-        self._compare = None
+        # self._compare = None
+        self.score = {}
+        self.delay_s = None #unit: seconds
+        self.delay_strong_s = None
 
     @property
     def query(self):
@@ -37,32 +41,87 @@ class QA:
 
     @property
     def prompt(self):
-        return f"IMPORTANT: You MUST answer based ONLY on the content of the video.\n Video ID: {self.video_key}\nQuestion: {self.query}\n【Strict Instructions】1. Answer ONLY with the single option letter (e.g., A/B/C/D/E/F) that matches the correct answer.2. Do NOT add any extra explanation, video details, reasoning, or irrelevant text.Answer:"
+        return f"IMPORTANT: You MUST select an option based ONLY on the content of the video.\n Question: {self.query}\n【Strict Instructions】1. Answer ONLY with the single option letter (e.g., A/B/C/D/E/F) that matches the correct answer.2. Do NOT add any extra explanation, video details, reasoning, or irrelevant text.Answer:"
         #return f"Video ID: {self.video_key}\nQuestion: {self.question}\nAnswer:"
-        
+    
+    @property
+    def prompt_strong(self):
+        return f"IMPORTANT: You MUST answer the question based on the content of the video.\n Question: {self.question}\n"
+
+    @property
+    def ENCODER(self):
+        return self.bench_object.ENCODER if self.bench_object else None
+
     def run(self, model, **kwargs):
         from .. import call
+        import time
+        start_time = time.time()
         self.result = call(model, {"content": [{"text": self.prompt}, {"video":self.video_path}], **kwargs} )
-        return self.result, self.compare(self.result)
+        self.delay_s = time.time() - start_time
+        return self.result
     
+    def run_strong(self, model, **kwargs):
+        from .. import call
+        import time
+        start_time = time.time()
+        self.result_strong = call(model, {"content": [{"text": self.prompt_strong}, {"video":self.video_path}], **kwargs} )
+        self.delay_strong_s = time.time() - start_time
+        return self.result_strong
+    
+    def text_call(self, model="Qwen3-Ours", **kwargs):
+        from .. import call
+        return call(model, **kwargs)
+
     def evaluate(self, function, **kwargs):
+        import time
+        start_time = time.time()
         self.result = function(self, **kwargs)
-        return self.result, self.compare(self.result)
+        self.delay_s = time.time() - start_time
+        return self.result #, self.compare(self.result)
 
     @property
     def record(self):
-        return {"result": self.result, "correct": self._compare}
+        return {"result": self.result, "result_strong": self.result_strong, "score": self.score, "delay_s": self.delay_s, "delay_rate": self.delay_rate, "delay_strong_s": self.delay_strong_s, "delay_strong_rate": self.delay_strong_rate }
         
     @property
     def video_path(self):
         return self.bench_object.Videos[self.video_key].path
 
-    def compare(self, generated_answer=""):
-        if self._compare is None:
-            ans = generated_answer if generated_answer else self.result
-            sol_letter = ans[8] if len(ans) >= 10 and ans.startswith("<answer>") and ans.endswith("</answer>") else ans[0]
-            self._compare = (sol_letter.strip().lower() == self.answer.strip().lower())
-        return self._compare
+    def compare(self):
+        if len(self.result)>0:
+            sol_letter = self.result[8] if len(self.result) >= 10 and self.result.startswith("<answer>") and self.result.endswith("</answer>") else self.result[0]
+            self.score["option"] = (sol_letter.strip().lower() == self.answer.strip().lower())
+
+        if len(self.result_strong)>0:
+            answer_string = self.options[ord(self.answer.strip().upper()) - 65] if self.answer.strip().upper() in ["A","B","C","D","E","F"] and (ord(self.answer.strip().upper()) - 65) < len(self.options) else self.answer.strip()
+            
+            encodes = self.ENCODER.encode(self.options)
+            answer_encode = self.ENCODER.encode([answer_string])[0]
+            result_strong_encode = self.ENCODER.encode([self.result_strong])[0]
+            closest_idx = (self.ENCODER.similarity(result_strong_encode, encodes)).flatten(start_dim=0).argmax().item()
+            self.score["closest"] = (closest_idx == (ord(self.answer.strip().upper()) - 65))
+            self.score["similarity"] = float(self.ENCODER.similarity(answer_encode, result_strong_encode))
+            
+            llm_choose_force = self.text_call(model="Qwen3-Ours", 
+                content={"content":[
+                    {"user":f"Given the question '{self.question}', options: {(', '.join([chr(65+i) + '. ' + str(option) for i, option in enumerate(self.options)]))}, and the response: {self.result_strong}, which option is most similar to the answer? Respond with the option letter only. Choose one even if you think none match well. Only respond with the letter."}
+                ]})
+            self.score["llm_choose_force"] = (llm_choose_force.strip()[0].upper() == self.answer.strip()[0].upper())
+            
+            llm_choose = self.text_call(model="Qwen3-Ours",
+                content={"content":[
+                    {"user":f"Given the question '{self.question}', options: {(', '.join([chr(65+i) + '. ' + str(option) for i, option in enumerate(self.options)]))}, and the response: {self.result_strong}, which option is most similar to the answer? Respond with the option letter only. If you think none match well, respond with 'N', otherwise choose one. Only respond with the letter."}
+                ]})
+            self.score["llm_choose"] = (llm_choose.strip()[0].upper() == self.answer.strip()[0].upper())
+
+            llm_judge = self.text_call(model="Qwen3-Ours",
+                content={"content":[
+                    {"user":f"Given the answer: {answer_string}, and the response: {self.result_strong}, does the response correctly answer the question based on the answer? Respond with 'Yes' or 'No' only."}
+                ]})
+            self.score["llm_judge"] = (llm_judge.strip().lower() == "yes")
+            
+        return self.score
+        
 
     @property
     def to_dict(self):
@@ -73,9 +132,15 @@ class QA:
             "options": self.options,
             "answer": self.answer,
             "result": self.result,
-            "correct": self._compare,
+            "result_strong": self.result_strong,
+            # "correct": self._compare,
+            "score": self.score,
             "query_time": self.query_time,
             "ref_time": self.ref_time,
+            "delay_s": self.delay_s,
+            "delay_rate": self.delay_rate,
+            "delay_strong_s": self.delay_strong_s,
+            "delay_strong_rate": self.delay_strong_rate,
         }
     
     @property
@@ -112,6 +177,26 @@ class QA:
     @property
     def source(self):
         return self.bench_object.name if self.bench_object else "Unknown"
+    
+    @property
+    def video(self):
+        return self.bench_object.Videos[self.video_key] if self.bench_object and self.video_key in self.bench_object.Videos else None
+
+    @property
+    def video_duration_s(self):
+        return self.video.duration_s if self.video else 0
+
+    @property
+    def delay_rate(self):
+        if self.delay_s is None or self.video_duration_s == 0:
+            return None
+        return self.delay_s / self.video_duration_s
+
+    @property
+    def delay_strong_rate(self):
+        if self.delay_strong_s is None or self.video_duration_s == 0:
+            return None
+        return self.delay_strong_s / self.video_duration_s
 
     @classmethod
     def asLongVideoBench(cls, qa_dict, bench_object):

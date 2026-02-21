@@ -1,11 +1,11 @@
-b=EgoSchema
+# b=EgoSchema
 #b=LongTimeScope
 #b=LongVideoBench
 #b=LVBench
 #b=MLVU
 #b=Video_MME
-#b=EgoLifeQA
-#b=EgoR1Bench
+b=EgoLifeQA
+# b=EgoR1Bench
 #b=XLeBench
 
 #m=Qwen3-VL-8B-Instruct
@@ -18,4 +18,4 @@ b=EgoSchema
 #m=LongVA-7B-DPO
 m=EgoGPT-7b-EgoIT-EgoLife
 
-python $(dirname "${BASH_SOURCE[0]}")/BenchTest.py $b $m --max_qa 4 --N 4 --create
+python $(dirname "${BASH_SOURCE[0]}")/BenchTest.py $b $m --max_qa 32 --N 64 # --load_qa 32 --create 

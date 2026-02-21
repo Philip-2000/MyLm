@@ -5,6 +5,7 @@ def parse():
     parser.add_argument("path", type=str, help="Path to the benchmark data")
     parser.add_argument("model", type=str, help="Language model to use for testing")
     parser.add_argument("--max_qa", type=int, default=-1, help="Maximum number of QAs to test")
+    parser.add_argument("--load_qa", type=int, default=-1, help="Maximum number of QAs to load")
     parser.add_argument("--N", type=int, default=64, help="Parameter N for EgoLifeQA benchmark")
     parser.add_argument("--create", action="store_true", help="Create new videos for EgoLifeQA benchmark")
     parser.add_argument("--key", type=str, nargs='*', default=None, help="Specific QA keys to test")
@@ -13,7 +14,7 @@ def parse():
 if __name__ == "__main__":
     arg = parse()
     from MyLm import Benchmark
-    B = Benchmark.asAuto(arg.path, N=arg.N, create=arg.create)
+    B = Benchmark.asAuto(arg.path, N=arg.N, create=arg.create, load_qa=arg.load_qa)
     print(f"Loaded ", B)
     # B.sort_videos_by_qa_count(reverse=True)
     # for i, (k,v) in enumerate(B.Videos.items()):

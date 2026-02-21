@@ -59,7 +59,10 @@ class LLaVA_Video_7B_Qwen2_Formater(AFormater):
 
 class LLaVA_Video_7B_Qwen2(AModel):
     def __init__(self, model_dir):
-        model_id = model_dir if model_dir.endswith("LLaVA-Video-7B-Qwen2") else os.path.join(model_dir, "LLaVA-Video-7B-Qwen2")
+        S = "LLaVA-Video-7B-Qwen2"
+        from .. import GLOBAL_CONFIG
+        T = S.replace("7B", GLOBAL_CONFIG[S]["par"])
+        model_id = model_dir.replace(S, T) if model_dir.endswith(S) else os.path.join(model_dir, T)
         model_name = "llava_qwen"
         self.device = "cuda"
         device_map = "auto"

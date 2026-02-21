@@ -3,6 +3,8 @@ import os, json
 from os.path import join as opj
 BENCH_BASE = "/mnt/data/raw_data/"
 
+ENCODER_PATH = "/mnt/data/models/Qwen3-Embedding-0.6B"
+
 BENCH_CONFIGS = {
     "LongTimeScope": {
         "path": BENCH_BASE + "LongTimeScope",

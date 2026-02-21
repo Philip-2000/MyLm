@@ -175,12 +175,15 @@ class Qwen2_5_VL_7B_Instruct_Formater(AFormater):
 
 class Qwen2_5_VL_7B_Instruct(AModel):
     def __init__(self, model_dir):
-        model_id = model_dir if model_dir.endswith("Qwen2.5-VL-7B-Instruct") else os.path.join(model_dir, "Qwen2.5-VL-7B-Instruct")
+        S = "Qwen2.5-VL-7B-Instruct"
+        from .. import GLOBAL_CONFIG
+        T = S.replace("7B-Instruct", GLOBAL_CONFIG[S]["par"])
+        model_id = model_dir.replace(S, T) if model_dir.endswith(S) else os.path.join(model_dir, T)
 
         from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
 
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_id, dtype="auto", device_map="auto")
-        self.processor = AutoProcessor.from_pretrained(model_id)
+        self.processor = AutoProcessor.from_pretrained(model_id, device_map="auto")
         self.formater = Qwen2_5_VL_7B_Instruct_Formater()
 
     def __call__(self, input_data):

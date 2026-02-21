@@ -1,8 +1,11 @@
 import os
 class Qwen3_32B:
     def __init__(self, model_dir):
-        model_id = model_dir if model_dir.endswith("Qwen3-32B") else os.path.join(model_dir, "Qwen3-32B")
-
+        S = "Qwen3-32B"
+        from .. import GLOBAL_CONFIG
+        T = S.replace("32B", GLOBAL_CONFIG[S]["par"])
+        model_id = model_dir.replace(S, T) if model_dir.endswith(S) else os.path.join(model_dir, T)
+        
         from transformers import AutoModelForCausalLM, AutoTokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.model = AutoModelForCausalLM.from_pretrained(model_id, dtype="auto", device_map="auto")
