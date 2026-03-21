@@ -1,0 +1,2 @@
+#!/bin/bash
+python $(dirname "${BASH_SOURCE[0]}")/LmServe.py Qwen3-VL-Embedding-2B

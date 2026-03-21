@@ -13,7 +13,7 @@ def call(model_name: str, content : dict):
     if not check: #only when you are sure the server is running correctly
         url = f"http://localhost:{GLOBAL_CONFIG[model_name]['port']}/call"
         
-        response = requests.post(url, json={"content": content, **kwargs})
+        response = requests.post(url, json=content)
         
         return response.json()
 
