@@ -136,7 +136,8 @@ response = Call("Qwen3-Embed-0.6B:a", {"content": [{"image": "path/to/image.jpg"
 如果不指定副本，或者该副本服务未启动的话，系统也会在已启动的同种模型的副本中选择一个来调用的。
 
 <span style="font-size:1.2em; color:lightblue">附表一：项目支持的模型附表</span>  
-<div style="display:none">
+
+<!--
 BASE_CONFIG = [
     {"name": "Qwen3-32B",                   "port": 7001, "env": "try", "par":"32B"}, #["4B","8B","32B","30B-A3B", "1.7B", "14B"]
     {"name": "InternVideo2.5-Chat-8B",      "port": 8001, "env": "ivd", "par":"8B"}, #["8B"]
@@ -153,7 +154,7 @@ BASE_CONFIG = [
     {"name": "Qwen3-VL-Embedding-2B",       "port": 9002, "env": "try", "par":"8B"}, #["2B", "8B"]
     {"name": "Qwen3-Embed-0.6B",            "port": 9003, "env": "try", "par":"0.6B"}, #["0.6B", "4B", "8B"]
 ]
-</div>
+-->
 
 | 模型名称 | 端口 | 环境 | 参数量选项（首项为默认选项） |
 |----    | ---- | ---- | ---- |
@@ -175,7 +176,8 @@ BASE_CONFIG = [
 
 <span style="font-size:1.2em; color:lightblue">附表二：项目支持的评测集合附表</span>
 
-<div style="display:none">BENCH_CONFIGS = {
+<!--
+BENCH_CONFIGS = {
     "LongTimeScope": {
         "path": BENCH_BASE + "LongTimeScope",
         "loader": Benchmark.asLongTimeScope,
@@ -220,7 +222,7 @@ b=EgoLifeQA        #500qa, 1v
 b=EgoR1Bench       #300qa, 6v
 b=XLeBench         #1000qa, 100v
 
-</div>
+-->
 
 | 评测集合名称 | 路径 | 题量（QA） | 视频数量（V） |
 | ----    | ---- | ---- | ---- |
