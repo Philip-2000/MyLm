@@ -17,10 +17,11 @@ b=EgoSchema
 # m=llava-onevision-qwen2-7b-ov
 # m=InternVideo2.5-Chat-8B
 # m=InternVL3_5-8B
-m=LongVA-7B-DPO
+# m=LongVA-7B-DPO
 # m=EgoGPT-7b-EgoIT-EgoLife
+m=Qwen3.5-27B
 # m=All
 
 
-python $(dirname "${BASH_SOURCE[0]}")/evaluate.py $b $m --max_qa 10 --num_segments 64 --do_run --do_strong_run --do_compare # --load_qa 2 --N 64
+python $(dirname "${BASH_SOURCE[0]}")/evaluate.py $b $m --max_qa -1 --num_segments 64 --do_run --do_strong_run --do_compare # --load_qa 2 --N 64
 # python $(dirname "${BASH_SOURCE[0]}")/evaluate.py EgoLifeQA $m --max_qa -1 --num_segments 64 --do_run # --load_qa 2 --N 64

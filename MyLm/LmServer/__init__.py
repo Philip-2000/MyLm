@@ -18,6 +18,7 @@ BASE_CONFIG = [
     {"name": "llava-onevision-qwen2-7b-ov", "port": 8007, "env": "llava", "par":"72b-ov-sft"}, #["0.5b-ov","7b-ov","72b-ov-sft"]
     {"name": "LongVA-7B-DPO",               "port": 8008, "env": "longva", "par":"7B-DPO"}, #["7B-DPO"]
     {"name": "EgoGPT-7b-EgoIT-EgoLife",     "port": 8009, "env": "egogpt", "par":"7b"}, #["7b"]
+    {"name": "Qwen3.5-27B",                 "port": 8010, "env": "base", "par":"27B"}, #["4B, 27B, 122B-A10B-FP8"]
     {"name": "Qwen3_Embedding_0.6B",        "port": 9001, "env": "try", "par":"0.6B"}, #["0.6B", "4B", "8B"]
     {"name": "Qwen3-VL-Embedding-2B",       "port": 9002, "env": "try", "par":"8B"}, #["2B", "8B"]
     {"name": "Qwen3-Embed-0.6B",            "port": 9003, "env": "try", "par":"0.6B"}, #["0.6B", "4B", "8B"]
